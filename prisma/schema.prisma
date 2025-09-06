@@ -1,0 +1,109 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  phone     String?
+  address   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users        User[]
+  patients     Patient[]
+  appointments Appointment[]
+  services     Service[]
+
+  @@map("organizations")
+}
+
+model User {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  name           String
+  phone          String?
+  role           UserRole @default(DENTIST)
+  organizationId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+
+  @@map("users")
+}
+
+model Patient {
+  id             String   @id @default(cuid())
+  name           String
+  email          String?
+  phone          String
+  birthDate      DateTime?
+  address        String?
+  organizationId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+
+  @@unique([phone, organizationId])
+  @@map("patients")
+}
+
+model Service {
+  id             String @id @default(cuid())
+  name           String
+  duration       Int    // duration in minutes
+  price          Float?
+  organizationId String
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+
+  @@map("services")
+}
+
+model Appointment {
+  id             String            @id @default(cuid())
+  startTime      DateTime
+  endTime        DateTime
+  status         AppointmentStatus @default(SCHEDULED)
+  notes          String?
+  reminderSent   Boolean           @default(false)
+  confirmedAt    DateTime?
+  organizationId String
+  patientId      String
+  dentistId      String
+  serviceId      String?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  patient      Patient      @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  dentist      User         @relation(fields: [dentistId], references: [id], onDelete: Cascade)
+  service      Service?     @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+
+  @@map("appointments")
+}
+
+enum UserRole {
+  ADMIN
+  DENTIST
+  RECEPTIONIST
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
