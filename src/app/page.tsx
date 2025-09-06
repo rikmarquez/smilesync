@@ -21,7 +21,7 @@ export default function Home() {
               Ir al Dashboard
             </Link>
             <Link
-              href="/auth/login"
+              href="/auth/signin"
               className="border border-blue-600 text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-blue-50 transition-colors"
             >
               Iniciar Sesión
@@ -65,12 +65,12 @@ export default function Home() {
                   <span>Modelos multi-tenant definidos</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="w-3 h-3 bg-yellow-500 rounded-full"></span>
-                  <span>Autenticación - En desarrollo</span>
+                  <span className="w-3 h-3 bg-green-500 rounded-full"></span>
+                  <span>NextAuth.js configurado</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="w-3 h-3 bg-yellow-500 rounded-full"></span>
-                  <span>Dashboard de citas - Pendiente</span>
+                  <span className="w-3 h-3 bg-green-500 rounded-full"></span>
+                  <span>Dashboard básico completado</span>
                 </div>
               </div>
             </div>

@@ -1,5 +1,7 @@
 # SmileSync - Información Crítica para Claude
 
+⚠️ **IMPORTANTE**: Lee el archivo STATUS.md al inicio de cada sesión para conocer el estado actual del proyecto.
+
 ## Información del Proyecto
 
 **Nombre**: SmileSync  
