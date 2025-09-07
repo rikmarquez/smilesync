@@ -7,7 +7,10 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(git push:*)",
-      "Bash(npm run seed:*)"
+      "Bash(npm run seed:*)",
+      "Bash(next dev)",
+      "Bash(npx next:*)",
+      "Bash(del nul)"
     ],
     "deny": [],
     "ask": []

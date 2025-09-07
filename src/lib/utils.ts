@@ -49,3 +49,36 @@ export function createTimeSlots(startTime: string, endTime: string, slotDuration
   
   return slots
 }
+
+/**
+ * Formatea una fecha de nacimiento de manera segura, evitando problemas de zona horaria
+ */
+export function formatBirthDate(dateInput: string | Date | null | undefined): string {
+  if (!dateInput) return 'No registrada';
+  
+  try {
+    let dateStr: string;
+    
+    if (dateInput instanceof Date) {
+      // Si es un Date object, convertir a string ISO y extraer solo la fecha
+      dateStr = dateInput.toISOString().split('T')[0];
+    } else {
+      dateStr = dateInput.toString();
+    }
+    
+    // Buscar el patrón de fecha YYYY-MM-DD
+    const dateMatch = dateStr.match(/(\d{4})-(\d{2})-(\d{2})/);
+    
+    if (!dateMatch) {
+      return 'Fecha inválida';
+    }
+    
+    const [, year, month, day] = dateMatch;
+    
+    // Formatear directamente sin usar Date constructor para evitar zona horaria
+    return `${parseInt(day)}/${parseInt(month)}/${year}`;
+  } catch (error) {
+    console.error('Error formatting birth date:', error);
+    return 'Fecha inválida';
+  }
+}

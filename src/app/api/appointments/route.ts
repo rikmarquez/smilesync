@@ -9,8 +9,8 @@ const createAppointmentSchema = z.object({
   endTime: z.string().datetime(),
   patientId: z.string(),
   dentistId: z.string(),
-  serviceId: z.string().optional(),
-  notes: z.string().optional()
+  serviceId: z.string().optional().nullable(),
+  notes: z.string().optional().nullable()
 })
 
 export async function GET(request: NextRequest) {
@@ -76,6 +76,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
+    console.log('Received appointment data:', body)
     const validatedData = createAppointmentSchema.parse(body)
 
     // Check for conflicting appointments
@@ -120,16 +121,41 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(appointment, { status: 201 })
   } catch (error) {
+    console.log('Error details:', error)
+    
     if (error instanceof z.ZodError) {
+      console.log('Zod error structure:', JSON.stringify(error, null, 2))
+      
+      // Buscar errores específicos de fecha/hora si existen
+      let hasDateTimeError = false
+      if (error.errors && Array.isArray(error.errors)) {
+        hasDateTimeError = error.errors.some(err => 
+          err.path && (err.path.includes('startTime') || err.path.includes('endTime'))
+        )
+      }
+      
+      if (hasDateTimeError) {
+        return NextResponse.json(
+          { error: 'Fecha u hora inválida. Por favor verifica el formato de fecha y hora.' },
+          { status: 400 }
+        )
+      }
+      
       return NextResponse.json(
-        { error: 'Invalid data', details: error.errors },
+        { error: 'Datos de cita inválidos', details: error.errors || [] },
         { status: 400 }
       )
     }
     
     console.error('Error creating appointment:', error)
+    
+    // Asegurar que siempre se devuelve un JSON válido
+    const errorMessage = error instanceof Error 
+      ? error.message 
+      : 'Error interno del servidor'
+    
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: errorMessage },
       { status: 500 }
     )
   }

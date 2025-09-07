@@ -6,15 +6,15 @@ import { z } from 'zod'
 
 const updatePatientSchema = z.object({
   name: z.string().min(1).optional(),
-  email: z.string().email().optional(),
+  email: z.string().email().optional().nullable(),
   phone: z.string().min(1).optional(),
-  birthDate: z.string().datetime().optional(),
-  address: z.string().optional()
+  birthDate: z.string().datetime().optional().nullable(),
+  address: z.string().optional().nullable()
 })
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
@@ -22,9 +22,11 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const { id } = await params
+
     const patient = await db.patient.findFirst({
       where: {
-        id: params.id,
+        id: id,
         organizationId: session.user.organizationId
       },
       include: {
@@ -58,7 +60,7 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
@@ -66,13 +68,14 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const { id } = await params
     const body = await request.json()
     const validatedData = updatePatientSchema.parse(body)
 
     // Check if patient exists and belongs to user's organization
     const existingPatient = await db.patient.findFirst({
       where: {
-        id: params.id,
+        id: id,
         organizationId: session.user.organizationId
       }
     })
@@ -87,7 +90,7 @@ export async function PATCH(
         where: {
           phone: validatedData.phone,
           organizationId: session.user.organizationId,
-          id: { not: params.id }
+          id: { not: id }
         }
       })
 
@@ -103,11 +106,13 @@ export async function PATCH(
     if (validatedData.name) updateData.name = validatedData.name
     if (validatedData.email !== undefined) updateData.email = validatedData.email
     if (validatedData.phone) updateData.phone = validatedData.phone
-    if (validatedData.birthDate) updateData.birthDate = new Date(validatedData.birthDate)
+    if (validatedData.birthDate !== undefined) {
+      updateData.birthDate = validatedData.birthDate ? new Date(validatedData.birthDate) : null
+    }
     if (validatedData.address !== undefined) updateData.address = validatedData.address
 
     const patient = await db.patient.update({
-      where: { id: params.id },
+      where: { id: id },
       data: updateData
     })
 
@@ -130,7 +135,7 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
@@ -138,9 +143,11 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const { id } = await params
+
     const patient = await db.patient.findFirst({
       where: {
-        id: params.id,
+        id: id,
         organizationId: session.user.organizationId
       }
     })
@@ -150,7 +157,7 @@ export async function DELETE(
     }
 
     await db.patient.delete({
-      where: { id: params.id }
+      where: { id: id }
     })
 
     return NextResponse.json({ success: true })

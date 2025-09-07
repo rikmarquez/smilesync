@@ -6,10 +6,10 @@ import { z } from 'zod'
 
 const createPatientSchema = z.object({
   name: z.string().min(1),
-  email: z.string().email().optional(),
+  email: z.string().email().optional().nullable(),
   phone: z.string().min(1),
-  birthDate: z.string().datetime().optional(),
-  address: z.string().optional()
+  birthDate: z.string().datetime().optional().nullable(),
+  address: z.string().optional().nullable()
 })
 
 export async function GET(request: NextRequest) {
