@@ -24,3 +24,103 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Global form input styles - Fix text contrast issues */
+input[type="text"],
+input[type="email"],
+input[type="tel"],
+input[type="password"],
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"],
+input[type="number"],
+input[type="search"],
+input[type="url"],
+select,
+textarea {
+  color: #1f2937 !important; /* text-gray-800 - dark text */
+  background-color: #ffffff !important; /* white background */
+  border-color: #9ca3af !important; /* border-gray-400 */
+  font-weight: 500 !important; /* font-medium */
+}
+
+/* Focus states for form elements */
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="tel"]:focus,
+input[type="password"]:focus,
+input[type="date"]:focus,
+input[type="time"]:focus,
+input[type="datetime-local"]:focus,
+input[type="number"]:focus,
+input[type="search"]:focus,
+input[type="url"]:focus,
+select:focus,
+textarea:focus {
+  color: #1f2937 !important;
+  background-color: #ffffff !important;
+  border-color: #3b82f6 !important; /* blue-500 */
+  outline: none !important;
+  ring: 2px solid #3b82f6 !important;
+}
+
+/* Placeholder text visibility */
+input::placeholder,
+textarea::placeholder {
+  color: #6b7280 !important; /* text-gray-500 */
+  opacity: 1 !important;
+}
+
+/* Select option text */
+select option {
+  color: #1f2937 !important;
+  background-color: #ffffff !important;
+}
+
+/* Button text contrast */
+button {
+  font-weight: 500 !important;
+}
+
+/* Ensure all text inputs have proper contrast */
+.form-input,
+.form-select,
+.form-textarea {
+  color: #1f2937 !important;
+  background-color: #ffffff !important;
+  border-color: #9ca3af !important;
+  font-weight: 500 !important;
+}
+
+/* Utility class for consistent input styling */
+.input-contrast {
+  color: #1f2937 !important; /* text-gray-800 */
+  background-color: #ffffff !important; /* bg-white */
+  border-color: #9ca3af !important; /* border-gray-400 */
+  font-weight: 500 !important; /* font-medium */
+}
+
+.input-contrast:focus {
+  color: #1f2937 !important;
+  background-color: #ffffff !important;
+  border-color: #3b82f6 !important; /* border-blue-500 */
+  outline: none !important;
+}
+
+.input-contrast::placeholder {
+  color: #6b7280 !important; /* text-gray-500 */
+  opacity: 1 !important;
+}
+
+/* Button contrast utility */
+.button-contrast {
+  font-weight: 500 !important;
+  color: #1f2937 !important;
+}
+
+.button-contrast-white {
+  color: #1f2937 !important;
+  background-color: #ffffff !important;
+  border-color: #9ca3af !important;
+  font-weight: 500 !important;
+}
