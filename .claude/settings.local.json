@@ -13,7 +13,8 @@
       "Bash(del nul)",
       "Bash(curl:*)",
       "Bash(node:*)",
-      "Bash(del debug-appointments.js)"
+      "Bash(del debug-appointments.js)",
+      "Bash(del \"C:\\Users\\richm\\OneDrive\\Escritorio\\Software Developer\\Claude\\smilesync\\seed-services.js\")"
     ],
     "deny": [],
     "ask": []

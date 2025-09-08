@@ -102,6 +102,8 @@ export default function CalendarPage() {
   // Handle new appointment creation
   const handleCreateAppointment = async (appointmentData: any) => {
     try {
+      console.log('Sending appointment data to API:', appointmentData)
+      
       const response = await fetch('/api/appointments/create', {
         method: 'POST',
         headers: {
@@ -110,12 +112,15 @@ export default function CalendarPage() {
         body: JSON.stringify(appointmentData)
       })
 
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Failed to create appointment')
-      }
+      const responseData = await response.json()
+      console.log('API response:', { status: response.status, data: responseData })
 
-      const newAppointment = await response.json()
+      if (!response.ok) {
+        if (responseData.details) {
+          console.error('Validation details:', responseData.details)
+        }
+        throw new Error(responseData.error || 'Failed to create appointment')
+      }
       
       // Refresh calendar data to show new appointment
       window.location.reload() // Simple refresh for now

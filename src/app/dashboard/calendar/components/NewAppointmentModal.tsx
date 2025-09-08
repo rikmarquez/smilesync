@@ -1,9 +1,17 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import clsx from 'clsx'
+
+interface Patient {
+  id: string
+  name: string
+  phone: string
+  email?: string
+  birthDate?: string
+}
 
 interface NewAppointmentModalProps {
   isOpen: boolean
@@ -24,10 +32,9 @@ export default function NewAppointmentModal({
   prefilledData,
   dentists
 }: NewAppointmentModalProps) {
+  // Form data state
   const [formData, setFormData] = useState({
-    patientName: '',
-    patientPhone: '',
-    patientEmail: '',
+    patientId: '',
     serviceId: '',
     dentistId: prefilledData?.dentistId || '',
     date: prefilledData?.date ? format(prefilledData.date, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
@@ -36,18 +43,79 @@ export default function NewAppointmentModal({
     notes: ''
   })
 
-  const [services] = useState([
-    { id: '1', name: 'Consulta General', duration: 30 },
-    { id: '2', name: 'Limpieza Dental', duration: 45 },
-    { id: '3', name: 'Empaste', duration: 60 },
-    { id: '4', name: 'Endodoncia', duration: 90 },
-    { id: '5', name: 'Extracción', duration: 30 },
-    { id: '6', name: 'Ortodoncia', duration: 45 },
-    { id: '7', name: 'Blanqueamiento', duration: 120 }
-  ])
+  // Patient search and selection
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState<Patient[]>([])
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null)
+  const [showResults, setShowResults] = useState(false)
+  const [isSearching, setIsSearching] = useState(false)
+  
+  // New patient creation
+  const [showNewPatientForm, setShowNewPatientForm] = useState(false)
+  const [newPatientData, setNewPatientData] = useState({
+    name: '',
+    phone: '',
+    birthDate: ''
+  })
+
+  const [services, setServices] = useState<Array<{id: string, name: string, duration: number}>>([])
+  
+  // Fetch services from API
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        const response = await fetch('/api/services')
+        if (response.ok) {
+          const data = await response.json()
+          setServices(data)
+        }
+      } catch (error) {
+        console.error('Error fetching services:', error)
+      }
+    }
+    
+    fetchServices()
+  }, [])
 
   const [loading, setLoading] = useState(false)
+  const searchInputRef = useRef<HTMLInputElement>(null)
+  const resultsRef = useRef<HTMLDivElement>(null)
 
+  // Search patients
+  const searchPatients = async (query: string) => {
+    if (query.length < 2) {
+      setSearchResults([])
+      setShowResults(false)
+      return
+    }
+
+    setIsSearching(true)
+    try {
+      const response = await fetch(`/api/patients/search?q=${encodeURIComponent(query)}`)
+      if (response.ok) {
+        const patients = await response.json()
+        setSearchResults(patients)
+        setShowResults(true)
+      }
+    } catch (error) {
+      console.error('Error searching patients:', error)
+    } finally {
+      setIsSearching(false)
+    }
+  }
+
+  // Debounced search
+  useEffect(() => {
+    const debouncer = setTimeout(() => {
+      if (searchQuery && !selectedPatient) {
+        searchPatients(searchQuery)
+      }
+    }, 300)
+
+    return () => clearTimeout(debouncer)
+  }, [searchQuery, selectedPatient])
+
+  // Reset form when modal opens
   useEffect(() => {
     if (isOpen && prefilledData) {
       setFormData(prev => ({
@@ -59,46 +127,155 @@ export default function NewAppointmentModal({
     }
   }, [isOpen, prefilledData])
 
+  // Handle patient selection
+  const handlePatientSelect = (patient: Patient) => {
+    setSelectedPatient(patient)
+    setFormData(prev => ({ ...prev, patientId: patient.id }))
+    setSearchQuery(`${patient.name} - ${patient.phone}`)
+    setShowResults(false)
+    setShowNewPatientForm(false)
+  }
+
+  // Clear patient selection
+  const clearPatientSelection = () => {
+    setSelectedPatient(null)
+    setFormData(prev => ({ ...prev, patientId: '' }))
+    setSearchQuery('')
+    setShowResults(false)
+    setShowNewPatientForm(false)
+  }
+
+  // Create new patient
+  const handleCreateNewPatient = async () => {
+    try {
+      console.log('Creating patient with data:', newPatientData)
+      
+      // Add empty email to match API expectations
+      const patientDataWithEmail = {
+        ...newPatientData,
+        email: ''
+      }
+      
+      const response = await fetch('/api/patients', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(patientDataWithEmail),
+      })
+
+      const responseData = await response.json()
+      console.log('Response:', { status: response.status, data: responseData })
+
+      if (response.ok) {
+        handlePatientSelect(responseData)
+        // Reset new patient form
+        setNewPatientData({
+          name: '',
+          phone: '',
+          birthDate: ''
+        })
+      } else {
+        console.error('Error response from API:', responseData)
+        if (responseData.details) {
+          console.error('Validation details:', responseData.details)
+        }
+        alert(responseData.error || 'Error al crear paciente')
+      }
+    } catch (error) {
+      console.error('Error creating patient:', error)
+      alert('Error al crear paciente')
+    }
+  }
+
+  // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (!selectedPatient && !showNewPatientForm) {
+      alert('Por favor selecciona un paciente o crea uno nuevo')
+      return
+    }
+
     setLoading(true)
 
     try {
-      // Create appointment data
+      let patientId = formData.patientId
+
+      // Create new patient if needed
+      if (showNewPatientForm && !selectedPatient) {
+        const patientDataWithEmail = {
+          ...newPatientData,
+          email: ''
+        }
+        
+        const response = await fetch('/api/patients', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(patientDataWithEmail),
+        })
+
+        const responseData = await response.json()
+
+        if (response.ok) {
+          patientId = responseData.id
+        } else {
+          console.error('Error creating patient:', responseData)
+          alert(responseData.error || 'Error al crear paciente')
+          return
+        }
+      }
+
+      // Create appointment
       const appointmentData = {
         ...formData,
+        patientId,
         startTime: `${formData.date}T${formData.time}:00`,
         duration: services.find(s => s.id === formData.serviceId)?.duration || 30
       }
 
+      console.log('Creating appointment with data:', appointmentData)
       await onSubmit(appointmentData)
       onClose()
       
       // Reset form
-      setFormData({
-        patientName: '',
-        patientPhone: '',
-        patientEmail: '',
-        serviceId: '',
-        dentistId: prefilledData?.dentistId || '',
-        date: prefilledData?.date ? format(prefilledData.date, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
-        time: prefilledData?.time || '09:00',
-        duration: 30,
-        notes: ''
-      })
+      resetForm()
     } catch (error) {
       console.error('Error creating appointment:', error)
-      // Handle error - you could show a toast notification here
+      alert('Error al crear la cita')
     } finally {
       setLoading(false)
     }
+  }
+
+  const resetForm = () => {
+    setFormData({
+      patientId: '',
+      serviceId: '',
+      dentistId: prefilledData?.dentistId || '',
+      date: prefilledData?.date ? format(prefilledData.date, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
+      time: prefilledData?.time || '09:00',
+      duration: 30,
+      notes: ''
+    })
+    setSelectedPatient(null)
+    setSearchQuery('')
+    setShowResults(false)
+    setShowNewPatientForm(false)
+    setNewPatientData({
+      name: '',
+      phone: '',
+      birthDate: ''
+    })
   }
 
   if (!isOpen) return null
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl m-4 max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl m-4 max-h-[95vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b">
           <h2 className="text-xl font-semibold text-gray-900">
@@ -115,52 +292,183 @@ export default function NewAppointmentModal({
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {/* Patient Information */}
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          {/* Patient Search/Selection */}
           <div className="space-y-4">
-            <h3 className="font-medium text-gray-900">Información del Paciente</h3>
+            <h3 className="font-medium text-gray-900">Seleccionar Paciente</h3>
             
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Nombre completo *
-              </label>
-              <input
-                type="text"
-                required
-                value={formData.patientName}
-                onChange={(e) => setFormData(prev => ({ ...prev, patientName: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Nombre del paciente"
-              />
-            </div>
+            {!selectedPatient && !showNewPatientForm && (
+              <div className="relative">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Buscar paciente por nombre, teléfono o email
+                </label>
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white font-medium"
+                  placeholder="Escribe para buscar..."
+                />
+                
+                {/* Search Results */}
+                {showResults && (
+                  <div ref={resultsRef} className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                    {isSearching ? (
+                      <div className="p-3 text-sm text-gray-500">Buscando...</div>
+                    ) : searchResults.length > 0 ? (
+                      <>
+                        {searchResults.map((patient) => (
+                          <button
+                            key={patient.id}
+                            type="button"
+                            onClick={() => handlePatientSelect(patient)}
+                            className="w-full text-left px-3 py-2 hover:bg-blue-50 focus:bg-blue-50 focus:outline-none"
+                          >
+                            <div className="font-medium text-gray-900">{patient.name}</div>
+                            <div className="text-sm text-gray-500">
+                              {patient.phone} {patient.email && `• ${patient.email}`}
+                            </div>
+                          </button>
+                        ))}
+                        <div className="border-t border-gray-200">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowNewPatientForm(true)
+                              setNewPatientData(prev => ({ ...prev, name: searchQuery }))
+                              setShowResults(false)
+                            }}
+                            className="w-full text-left px-3 py-2 text-blue-600 hover:bg-blue-50 focus:bg-blue-50 focus:outline-none"
+                          >
+                            + Crear nuevo paciente "{searchQuery}"
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="p-3">
+                        <div className="text-sm text-gray-500 mb-2">No se encontraron pacientes</div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowNewPatientForm(true)
+                            setNewPatientData(prev => ({ ...prev, name: searchQuery }))
+                            setShowResults(false)
+                          }}
+                          className="w-full text-left text-blue-600 hover:text-blue-800"
+                        >
+                          + Crear nuevo paciente "{searchQuery}"
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Teléfono *
-                </label>
-                <input
-                  type="tel"
-                  required
-                  value={formData.patientPhone}
-                  onChange={(e) => setFormData(prev => ({ ...prev, patientPhone: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="+57 300 123 4567"
-                />
+            {/* Selected Patient */}
+            {selectedPatient && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="font-medium text-gray-900">👤 {selectedPatient.name}</div>
+                    <div className="text-sm text-gray-600">
+                      📱 {selectedPatient.phone}
+                      {selectedPatient.email && ` • ✉️ ${selectedPatient.email}`}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={clearPatientSelection}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  value={formData.patientEmail}
-                  onChange={(e) => setFormData(prev => ({ ...prev, patientEmail: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="email@ejemplo.com"
-                />
+            )}
+
+            {/* New Patient Form */}
+            {showNewPatientForm && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium text-gray-900">➕ Crear Nuevo Paciente</h4>
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPatientForm(false)}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Nombre completo *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={newPatientData.name}
+                      onChange={(e) => setNewPatientData(prev => ({ ...prev, name: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white font-medium"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Teléfono *
+                    </label>
+                    <input
+                      type="tel"
+                      required
+                      value={newPatientData.phone}
+                      onChange={(e) => setNewPatientData(prev => ({ ...prev, phone: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white font-medium"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Fecha de nacimiento (opcional)
+                    </label>
+                    <input
+                      type="date"
+                      value={newPatientData.birthDate}
+                      onChange={(e) => setNewPatientData(prev => ({ ...prev, birthDate: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white font-medium"
+                    />
+                  </div>
+                </div>
+
+                {/* Save Patient Button */}
+                <div className="flex items-center justify-end space-x-3 pt-3 border-t border-green-300">
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPatientForm(false)}
+                    className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCreateNewPatient}
+                    disabled={!newPatientData.name || !newPatientData.phone}
+                    className={clsx(
+                      'px-3 py-2 text-sm font-medium text-white border border-transparent rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500',
+                      !newPatientData.name || !newPatientData.phone
+                        ? 'bg-gray-400 cursor-not-allowed'
+                        : 'bg-green-600 hover:bg-green-700'
+                    )}
+                  >
+                    ✓ Guardar
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Appointment Details */}
@@ -177,7 +485,7 @@ export default function NewAppointmentModal({
                   required
                   value={formData.date}
                   onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white font-medium"
                 />
               </div>
               <div>
@@ -189,7 +497,7 @@ export default function NewAppointmentModal({
                   required
                   value={formData.time}
                   onChange={(e) => setFormData(prev => ({ ...prev, time: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white font-medium"
                 />
               </div>
             </div>
@@ -203,7 +511,7 @@ export default function NewAppointmentModal({
                   required
                   value={formData.serviceId}
                   onChange={(e) => setFormData(prev => ({ ...prev, serviceId: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white font-medium"
                 >
                   <option value="">Seleccionar servicio</option>
                   {services.map((service) => (
@@ -221,7 +529,7 @@ export default function NewAppointmentModal({
                   required
                   value={formData.dentistId}
                   onChange={(e) => setFormData(prev => ({ ...prev, dentistId: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white font-medium"
                 >
                   <option value="">Seleccionar dentista</option>
                   {dentists.map((dentist) => (
@@ -241,7 +549,7 @@ export default function NewAppointmentModal({
                 value={formData.notes}
                 onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white font-medium"
                 placeholder="Información adicional, alergias, etc."
               />
             </div>
@@ -258,10 +566,10 @@ export default function NewAppointmentModal({
             </button>
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || (!selectedPatient && !showNewPatientForm)}
               className={clsx(
                 'px-4 py-2 text-sm font-medium text-white border border-transparent rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500',
-                loading
+                loading || (!selectedPatient && !showNewPatientForm)
                   ? 'bg-gray-400 cursor-not-allowed'
                   : 'bg-blue-600 hover:bg-blue-700'
               )}

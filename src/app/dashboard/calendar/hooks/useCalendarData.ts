@@ -65,7 +65,7 @@ export function useCalendarData() {
       const params = new URLSearchParams({
         view,
         date: currentDate.toISOString(),
-        ...(selectedDentist && { dentistId: selectedDentist })
+        ...(selectedDentist && selectedDentist !== 'all' && { dentistId: selectedDentist })
       })
 
       const response = await fetch(`/api/appointments/calendar?${params}`)

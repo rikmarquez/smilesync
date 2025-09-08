@@ -5,9 +5,8 @@ import { db } from '@/lib/db'
 import { z } from 'zod'
 
 const createAppointmentSchema = z.object({
-  patientName: z.string().min(1, 'Patient name is required'),
-  patientPhone: z.string().min(1, 'Patient phone is required'),
-  patientEmail: z.string().email().optional().or(z.literal('')),
+  // New flow: patient ID is provided
+  patientId: z.string().min(1, 'Patient is required'),
   serviceId: z.string().min(1, 'Service is required'),
   dentistId: z.string().min(1, 'Dentist is required'),
   startTime: z.string().min(1, 'Start time is required'),
@@ -23,30 +22,34 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
+    console.log('DEBUG - Received body:', JSON.stringify(body, null, 2))
+    console.log('DEBUG - Expected schema:', {
+      patientId: 'string',
+      serviceId: 'string', 
+      dentistId: 'string',
+      startTime: 'string',
+      duration: 'number',
+      notes: 'string (optional)'
+    })
     const data = createAppointmentSchema.parse(body)
 
     // Calculate end time
     const startTime = new Date(data.startTime)
     const endTime = new Date(startTime.getTime() + data.duration * 60 * 1000)
 
-    // Check if patient exists, create if not
-    let patient = await db.patient.findFirst({
+    // Verify patient exists and belongs to organization
+    const patient = await db.patient.findFirst({
       where: {
-        phone: data.patientPhone,
+        id: data.patientId,
         organizationId: session.user.organizationId
       }
     })
 
     if (!patient) {
-      // Create new patient
-      patient = await db.patient.create({
-        data: {
-          name: data.patientName,
-          phone: data.patientPhone,
-          email: data.patientEmail || null,
-          organizationId: session.user.organizationId
-        }
-      })
+      return NextResponse.json(
+        { error: 'Patient not found or does not belong to organization' },
+        { status: 404 }
+      )
     }
 
     // Check for conflicts
@@ -89,7 +92,7 @@ export async function POST(request: NextRequest) {
         status: 'SCHEDULED',
         notes: data.notes || null,
         organizationId: session.user.organizationId,
-        patientId: patient.id,
+        patientId: data.patientId,
         dentistId: data.dentistId,
         serviceId: data.serviceId
       },

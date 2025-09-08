@@ -31,10 +31,12 @@ export default function CalendarGrid({
   getAppointmentsForSlot,
   isSlotAvailable
 }: CalendarGridProps) {
-  // Get selected dentist only (no "all" option)
-  const displayDentists = selectedDentist 
-    ? dentists.filter(d => d.id === selectedDentist)
-    : dentists.slice(0, 1) // fallback to first dentist
+  // Get selected dentist(s) - show all in day view when "all" is selected
+  const displayDentists = selectedDentist === 'all' && view === 'day'
+    ? dentists // Show all dentists in day view
+    : selectedDentist 
+      ? dentists.filter(d => d.id === selectedDentist)
+      : dentists.slice(0, 1) // fallback to first dentist
 
   // Generate days for week view
   const weekDays = view === 'week' ? Array.from({ length: 7 }, (_, i) => {

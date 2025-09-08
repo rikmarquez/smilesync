@@ -6,9 +6,9 @@ import { z } from 'zod'
 
 const createPatientSchema = z.object({
   name: z.string().min(1),
-  email: z.string().email().optional().nullable(),
+  email: z.string().email().optional().or(z.literal('')).nullable(),
   phone: z.string().min(1),
-  birthDate: z.string().datetime().optional().nullable(),
+  birthDate: z.string().optional().or(z.literal('')).nullable(),
   address: z.string().optional().nullable()
 })
 
@@ -85,8 +85,11 @@ export async function POST(request: NextRequest) {
 
     const patient = await db.patient.create({
       data: {
-        ...validatedData,
-        birthDate: validatedData.birthDate ? new Date(validatedData.birthDate) : null,
+        name: validatedData.name,
+        email: validatedData.email || null,
+        phone: validatedData.phone,
+        birthDate: validatedData.birthDate && validatedData.birthDate !== '' ? new Date(validatedData.birthDate) : null,
+        address: validatedData.address || null,
         organizationId: session.user.organizationId
       }
     })
