@@ -59,7 +59,7 @@ export default function NewAppointment() {
     Promise.all([
       fetch('/api/patients').then(r => r.json()),
       fetch('/api/services').then(r => r.json()),
-      fetch('/api/users?role=DENTIST,ADMIN').then(r => r.json())
+      fetch('/api/users?role=DENTIST,CLINIC_ADMIN').then(r => r.json())
     ]).then(([patientsData, servicesData, usersData]) => {
       setPatients(patientsData)
       setServices(servicesData || [])

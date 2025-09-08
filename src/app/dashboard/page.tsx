@@ -14,16 +14,20 @@ export default function Dashboard() {
     pending: 0
   })
   const [todayAppointments, setTodayAppointments] = useState<any[]>([])
+  const [clinicInfo, setClinicInfo] = useState<{name: string, plan: string} | null>(null)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/auth/signin')
+    } else if (session?.user?.role === 'SUPER_ADMIN') {
+      router.push('/dashboard/super-admin')
     }
-  }, [status, router])
+  }, [status, session, router])
 
   useEffect(() => {
     if (session) {
       fetchStats()
+      fetchClinicInfo()
     }
   }, [session])
 
@@ -57,6 +61,18 @@ export default function Dashboard() {
     }
   }
 
+  const fetchClinicInfo = async () => {
+    try {
+      const response = await fetch('/api/clinic-info')
+      if (response.ok) {
+        const info = await response.json()
+        setClinicInfo(info)
+      }
+    } catch (error) {
+      console.error('Error fetching clinic info:', error)
+    }
+  }
+
   if (status === 'loading') {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -75,8 +91,19 @@ export default function Dashboard() {
       <header className="bg-white shadow">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 justify-between items-center">
-            <div className="flex items-center">
+            <div className="flex items-center space-x-4">
               <h1 className="text-xl font-semibold text-gray-900">SmileSync</h1>
+              {clinicInfo && (
+                <div className="flex items-center space-x-2">
+                  <div className="h-6 w-px bg-gray-300"></div>
+                  <div className="flex items-center space-x-1">
+                    <span className="text-sm font-medium text-blue-600">🏥 {clinicInfo.name}</span>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                      {clinicInfo.plan.toUpperCase()}
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-700">
@@ -213,7 +240,7 @@ export default function Dashboard() {
               </div>
               
               {/* Admin Actions */}
-              {session?.user?.role === 'ADMIN' && (
+              {session?.user?.role === 'CLINIC_ADMIN' && (
                 <div className="mt-4 pt-4 border-t border-gray-200">
                   <h4 className="text-sm font-medium text-gray-700 mb-3">Administración</h4>
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

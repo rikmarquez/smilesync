@@ -1,22 +1,27 @@
-import { PrismaClient } from '@prisma/client'
-import { hashPassword } from '../src/lib/password'
+const { PrismaClient } = require('@prisma/client')
+const bcrypt = require('bcryptjs')
 
 const prisma = new PrismaClient()
+
+async function hashPassword(password) {
+  const saltRounds = 12
+  return bcrypt.hash(password, saltRounds)
+}
 
 async function main() {
   console.log('🌱 Starting multi-clinic seed...')
 
   // 1. Create SUPER_ADMIN (no organization)
-  const superAdminPassword = await hashPassword('123456')
+  const superAdminPassword = await hashPassword('Acceso979971')
   const superAdmin = await prisma.user.upsert({
-    where: { username: 'superadmin' },
+    where: { email: 'rik@rikmarquez.com' },
     update: {},
     create: {
-      username: 'superadmin',
-      email: 'superadmin@smilesync.com',
+      username: 'rik@rikmarquez.com',
+      email: 'rik@rikmarquez.com',
       password: superAdminPassword,
-      name: 'Super Administrador',
-      role: 'SUPER_ADMIN' as const,
+      name: 'Rik Márquez',
+      role: 'SUPER_ADMIN',
       organizationId: null
     }
   })
@@ -65,30 +70,30 @@ async function main() {
   // For organization 1 (SmileSync Centro)
   const org1Users = [
     {
-      username: 'admin1',
-      email: 'admin1@smilesync.com',
+      username: 'admin1@centro.smilesync.com',
+      email: 'admin1@centro.smilesync.com',
       password: demoPassword,
       name: 'Dr. Ana García',
       phone: '+521234567891',
-      role: 'CLINIC_ADMIN' as const,
+      role: 'CLINIC_ADMIN',
       organizationId: createdOrgs[0].id
     },
     {
-      username: 'dentist1',
-      email: 'dentist1@smilesync.com', 
+      username: 'dentist1@centro.smilesync.com',
+      email: 'dentist1@centro.smilesync.com', 
       password: demoPassword,
       name: 'Dr. Carlos López',
       phone: '+521234567892',
-      role: 'DENTIST' as const,
+      role: 'DENTIST',
       organizationId: createdOrgs[0].id
     },
     {
-      username: 'recep1',
-      email: 'recep1@smilesync.com',
+      username: 'recep1@centro.smilesync.com',
+      email: 'recep1@centro.smilesync.com',
       password: demoPassword,
       name: 'María Rodríguez',
       phone: '+521234567893', 
-      role: 'RECEPTIONIST' as const,
+      role: 'RECEPTIONIST',
       organizationId: createdOrgs[0].id
     }
   ]
@@ -96,21 +101,21 @@ async function main() {
   // For organization 2 (Dental Care Norte)
   const org2Users = [
     {
-      username: 'admin2',
-      email: 'admin2@dentalcare.com',
+      username: 'admin@norte.dentalcare.com',
+      email: 'admin@norte.dentalcare.com',
       password: demoPassword,
       name: 'Dr. Luis Martínez',
       phone: '+521987654322',
-      role: 'CLINIC_ADMIN' as const,
+      role: 'CLINIC_ADMIN',
       organizationId: createdOrgs[1].id
     },
     {
-      username: 'dentist2',
-      email: 'dentist2@dentalcare.com',
+      username: 'dentist@norte.dentalcare.com',
+      email: 'dentist@norte.dentalcare.com',
       password: demoPassword,
       name: 'Dra. Sofia Herrera',
       phone: '+521987654323',
-      role: 'DENTIST' as const, 
+      role: 'DENTIST', 
       organizationId: createdOrgs[1].id
     }
   ]
@@ -118,30 +123,30 @@ async function main() {
   // For organization 3 (Sonrisas del Sur)
   const org3Users = [
     {
-      username: 'admin3',
-      email: 'admin3@sonrisasdelsur.com',
+      username: 'admin@sur.sonrisasdelsur.com',
+      email: 'admin@sur.sonrisasdelsur.com',
       password: demoPassword,
       name: 'Dr. Roberto Jiménez',
       phone: '+525555666778',
-      role: 'CLINIC_ADMIN' as const,
+      role: 'CLINIC_ADMIN',
       organizationId: createdOrgs[2].id
     },
     {
-      username: 'dentist3',
-      email: 'dentist3@sonrisasdelsur.com',
+      username: 'dentist@sur.sonrisasdelsur.com',
+      email: 'dentist@sur.sonrisasdelsur.com',
       password: demoPassword,
       name: 'Dra. Carmen Torres',
       phone: '+525555666779',
-      role: 'DENTIST' as const,
+      role: 'DENTIST',
       organizationId: createdOrgs[2].id
     },
     {
-      username: 'recep3',
-      email: 'recep3@sonrisasdelsur.com',
+      username: 'recep@sur.sonrisasdelsur.com',
+      email: 'recep@sur.sonrisasdelsur.com',
       password: demoPassword,
       name: 'Patricia González',
       phone: '+525555666780',
-      role: 'RECEPTIONIST' as const,
+      role: 'RECEPTIONIST',
       organizationId: createdOrgs[2].id
     }
   ]
@@ -150,7 +155,7 @@ async function main() {
   
   for (const user of usersToCreate) {
     const created = await prisma.user.upsert({
-      where: { username: user.username },
+      where: { email: user.email },
       update: {},
       create: user
     })
@@ -236,20 +241,20 @@ async function main() {
   console.log('✅ Patients created:', createdPatients.length, 'for first organization')
 
   console.log('🎉 Multi-clinic seed completed successfully!')
-  console.log('\n📋 Demo credentials (usuario / contraseña):')
+  console.log('\n📋 Demo credentials (email / contraseña):')
   console.log('🚀 SUPER ADMIN (gestiona todas las clínicas):')
-  console.log('   superadmin / 123456')
+  console.log('   rik@rikmarquez.com / Acceso979971')
   console.log('\n🏥 CLÍNICA 1 - SmileSync Centro:')
-  console.log('   admin1 / 123456 (Admin de clínica)')
-  console.log('   dentist1 / 123456 (Dentista)')
-  console.log('   recep1 / 123456 (Recepcionista)')
+  console.log('   admin1@centro.smilesync.com / 123456 (Admin de clínica)')
+  console.log('   dentist1@centro.smilesync.com / 123456 (Dentista)')
+  console.log('   recep1@centro.smilesync.com / 123456 (Recepcionista)')
   console.log('\n🏥 CLÍNICA 2 - Dental Care Norte:')
-  console.log('   admin2 / 123456 (Admin de clínica)')
-  console.log('   dentist2 / 123456 (Dentista)')
+  console.log('   admin@norte.dentalcare.com / 123456 (Admin de clínica)')
+  console.log('   dentist@norte.dentalcare.com / 123456 (Dentista)')
   console.log('\n🏥 CLÍNICA 3 - Sonrisas del Sur:')
-  console.log('   admin3 / 123456 (Admin de clínica)')
-  console.log('   dentist3 / 123456 (Dentista)')
-  console.log('   recep3 / 123456 (Recepcionista)')
+  console.log('   admin@sur.sonrisasdelsur.com / 123456 (Admin de clínica)')
+  console.log('   dentist@sur.sonrisasdelsur.com / 123456 (Dentista)')
+  console.log('   recep@sur.sonrisasdelsur.com / 123456 (Recepcionista)')
   console.log('\n💡 Cada clínica es independiente con sus propios usuarios y datos')
 }
 

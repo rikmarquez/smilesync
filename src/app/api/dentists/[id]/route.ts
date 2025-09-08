@@ -8,7 +8,7 @@ const updateDentistSchema = z.object({
   name: z.string().min(1).optional(),
   email: z.string().email().optional(),
   phone: z.string().optional().nullable(),
-  role: z.enum(['DENTIST', 'ADMIN', 'RECEPTIONIST']).optional()
+  role: z.enum(['DENTIST', 'CLINIC_ADMIN', 'RECEPTIONIST']).optional()
 })
 
 export async function GET(
@@ -22,7 +22,7 @@ export async function GET(
     }
 
     // Solo admins pueden ver dentistas
-    if (session.user.role !== 'ADMIN') {
+    if (session.user.role !== 'CLINIC_ADMIN') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
@@ -58,7 +58,7 @@ export async function PUT(
     }
 
     // Solo admins pueden editar dentistas
-    if (session.user.role !== 'ADMIN') {
+    if (session.user.role !== 'CLINIC_ADMIN') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
@@ -124,7 +124,7 @@ export async function DELETE(
     }
 
     // Solo admins pueden eliminar dentistas
-    if (session.user.role !== 'ADMIN') {
+    if (session.user.role !== 'CLINIC_ADMIN') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 

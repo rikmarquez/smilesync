@@ -27,7 +27,7 @@ export default function EditDentistPage() {
     name: '',
     email: '',
     phone: '',
-    role: 'DENTIST' as 'DENTIST' | 'ADMIN' | 'RECEPTIONIST'
+    role: 'DENTIST' as 'DENTIST' | 'CLINIC_ADMIN' | 'RECEPTIONIST'
   })
 
   useEffect(() => {
@@ -111,7 +111,7 @@ export default function EditDentistPage() {
   }
 
   // Solo admins pueden editar dentistas
-  if (session.user.role !== 'ADMIN') {
+  if (session.user.role !== 'CLINIC_ADMIN') {
     return (
       <div className="min-h-screen bg-gray-50 p-8">
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
@@ -246,7 +246,7 @@ export default function EditDentistPage() {
                     className="mt-1 block w-full border border-gray-400 rounded-md px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 text-gray-900 bg-white font-medium"
                   >
                     <option value="DENTIST">Dentista</option>
-                    <option value="ADMIN">Administrador</option>
+                    <option value="CLINIC_ADMIN">Administrador</option>
                     <option value="RECEPTIONIST">Recepcionista</option>
                   </select>
                 </div>

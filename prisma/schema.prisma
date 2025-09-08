@@ -8,13 +8,17 @@ datasource db {
 }
 
 model Organization {
-  id        String   @id @default(cuid())
-  name      String
-  email     String   @unique
-  phone     String?
-  address   String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String             @id @default(cuid())
+  name        String
+  email       String             @unique
+  phone       String?
+  address     String?
+  status      OrganizationStatus @default(ACTIVE)
+  plan        String             @default("basic") // basic, premium, enterprise
+  maxUsers    Int                @default(10)
+  maxPatients Int                @default(1000)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
 
   users        User[]
   patients     Patient[]
@@ -25,18 +29,22 @@ model Organization {
 }
 
 model User {
-  id             String   @id @default(cuid())
-  email          String   @unique
+  id             String    @id @default(cuid())
+  username       String    @unique
+  email          String    @unique
+  password       String    // Hashed password
   name           String?
   phone          String?
-  role           UserRole @default(DENTIST)
-  organizationId String
+  role           UserRole  @default(DENTIST)
+  organizationId String?   // Null for SUPER_ADMIN
   image          String?
+  isActive       Boolean   @default(true)
+  lastLoginAt    DateTime?
   emailVerified  DateTime?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   appointments Appointment[]
   accounts     Account[]
   sessions     Session[]
@@ -112,6 +120,7 @@ model Service {
   organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   appointments Appointment[]
 
+  @@unique([name, organizationId])
   @@map("services")
 }
 
@@ -139,9 +148,17 @@ model Appointment {
 }
 
 enum UserRole {
-  ADMIN
+  SUPER_ADMIN    // Can manage all organizations
+  CLINIC_ADMIN   // Can manage users within their organization
   DENTIST
   RECEPTIONIST
+}
+
+enum OrganizationStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  TRIAL
 }
 
 enum AppointmentStatus {

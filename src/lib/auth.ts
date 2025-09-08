@@ -3,14 +3,16 @@ import { PrismaAdapter } from '@next-auth/prisma-adapter'
 import { db } from './db'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { UserRole } from '@prisma/client'
+import bcrypt from 'bcryptjs'
 
 declare module 'next-auth' {
   interface Session {
     user: {
       id: string
+      username: string
       email: string
       name?: string
-      organizationId: string
+      organizationId: string | null
       role: UserRole
       image?: string
     }
@@ -18,9 +20,10 @@ declare module 'next-auth' {
   
   interface User {
     id: string
+    username: string
     email: string
     name?: string
-    organizationId: string
+    organizationId: string | null
     role: UserRole
     image?: string
   }
@@ -36,73 +39,56 @@ export const authOptions: NextAuthOptions = {
       name: 'credentials',
       credentials: {
         email: { label: 'Email', type: 'email' },
-        password: { label: 'Password', type: 'password' },
-        organizationCode: { label: 'Organization Code', type: 'text' }
+        password: { label: 'Contraseña', type: 'password' }
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
           return null
         }
 
-        // For demo purposes, we'll create a simple auth
-        // In production, you'd verify password against a hash
-        const user = await db.user.findUnique({
-          where: { email: credentials.email },
-          include: { organization: true }
-        })
-
-        if (!user) {
-          // Create demo user for development
-          const organization = await db.organization.findFirst({
-            where: { name: { contains: 'Demo' } }
+        try {
+          // Find user by email
+          const user = await db.user.findUnique({
+            where: { email: credentials.email },
+            include: { organization: true }
           })
 
-          if (!organization) {
-            const newOrg = await db.organization.create({
-              data: {
-                name: 'Demo Clinic',
-                email: 'demo@smilecync.com'
-              }
-            })
-
-            const newUser = await db.user.create({
-              data: {
-                email: credentials.email,
-                name: 'Demo User',
-                role: 'ADMIN',
-                organizationId: newOrg.id
-              }
-            })
-
-            return {
-              id: newUser.id,
-              email: newUser.email,
-              name: newUser.name,
-              organizationId: newUser.organizationId,
-              role: newUser.role,
-              image: newUser.image
-            }
+          if (!user || !user.isActive) {
+            return null
           }
-        }
 
-        if (user) {
+          // Verify password
+          const isValidPassword = await bcrypt.compare(credentials.password, user.password)
+          if (!isValidPassword) {
+            return null
+          }
+
+          // Update last login
+          await db.user.update({
+            where: { id: user.id },
+            data: { lastLoginAt: new Date() }
+          })
+
           return {
             id: user.id,
+            username: user.username,
             email: user.email,
             name: user.name,
             organizationId: user.organizationId,
             role: user.role,
             image: user.image
           }
+        } catch (error) {
+          console.error('Authentication error:', error)
+          return null
         }
-
-        return null
       }
     })
   ],
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
+        token.username = user.username
         token.organizationId = user.organizationId
         token.role = user.role
       }
@@ -111,7 +97,8 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       if (token) {
         session.user.id = token.sub!
-        session.user.organizationId = token.organizationId as string
+        session.user.username = token.username as string
+        session.user.organizationId = token.organizationId as string | null
         session.user.role = token.role as UserRole
       }
       return session

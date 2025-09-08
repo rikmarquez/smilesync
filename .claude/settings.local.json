@@ -14,7 +14,14 @@
       "Bash(curl:*)",
       "Bash(node:*)",
       "Bash(del debug-appointments.js)",
-      "Bash(del \"C:\\Users\\richm\\OneDrive\\Escritorio\\Software Developer\\Claude\\smilesync\\seed-services.js\")"
+      "Bash(del \"C:\\Users\\richm\\OneDrive\\Escritorio\\Software Developer\\Claude\\smilesync\\seed-services.js\")",
+      "Bash(set PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION=adelante procede)",
+      "Bash(psql:*)",
+      "Bash(npx ts-node:*)",
+      "Bash(del migrate-to-multiClinic.js)",
+      "Bash(del reset-db.sql)",
+      "Bash(find:*)",
+      "Bash(set PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION=yes)"
     ],
     "deny": [],
     "ask": []

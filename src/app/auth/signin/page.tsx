@@ -24,12 +24,18 @@ export default function SignIn() {
       })
 
       if (result?.error) {
-        setError('Invalid credentials')
+        setError('Usuario o contraseña incorrectos')
       } else {
-        router.push('/dashboard')
+        // Get updated session to check user role
+        const session = await getSession()
+        if (session?.user?.role === 'SUPER_ADMIN') {
+          router.push('/dashboard/super-admin')
+        } else {
+          router.push('/dashboard')
+        }
       }
     } catch (error) {
-      setError('Something went wrong')
+      setError('Error en el servidor')
     } finally {
       setLoading(false)
     }
@@ -43,37 +49,37 @@ export default function SignIn() {
             SmileSync
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Sign in to your dental clinic
+            Sistema de Gestión Dental Multi-Clínica
           </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="rounded-md shadow-sm -space-y-px">
             <div>
               <label htmlFor="email" className="sr-only">
-                Email address
+                Email
               </label>
               <input
                 id="email"
                 name="email"
                 type="email"
                 required
-                className="relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Email address"
+                className="relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm bg-white"
+                placeholder="Email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
             </div>
             <div>
               <label htmlFor="password" className="sr-only">
-                Password
+                Contraseña
               </label>
               <input
                 id="password"
                 name="password"
                 type="password"
                 required
-                className="relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Password"
+                className="relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm bg-white"
+                placeholder="Contraseña"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
@@ -90,12 +96,15 @@ export default function SignIn() {
               disabled={loading}
               className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
             >
-              {loading ? 'Signing in...' : 'Sign in'}
+              {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
             </button>
           </div>
 
-          <div className="text-xs text-gray-500 text-center">
-            Demo: Use any email and password to create a demo account
+          <div className="text-xs text-gray-500 text-center space-y-1">
+            <div>🦷 Usuarios de Demo disponibles:</div>
+            <div><strong>Admin Centro:</strong> admin1@centro.smilesync.com / 123456</div>
+            <div><strong>Admin Norte:</strong> admin@norte.dentalcare.com / 123456</div>
+            <div><strong>Dentista Centro:</strong> dentist1@centro.smilesync.com / 123456</div>
           </div>
         </form>
       </div>

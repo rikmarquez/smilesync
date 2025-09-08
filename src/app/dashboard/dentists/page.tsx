@@ -23,6 +23,7 @@ export default function DentistsPage() {
   const [dentists, setDentists] = useState<Dentist[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [clinicInfo, setClinicInfo] = useState<{name: string, plan: string} | null>(null)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -33,6 +34,7 @@ export default function DentistsPage() {
   useEffect(() => {
     if (session) {
       fetchDentists()
+      fetchClinicInfo()
     }
   }, [session])
 
@@ -48,6 +50,18 @@ export default function DentistsPage() {
       setError(error instanceof Error ? error.message : 'Error desconocido')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchClinicInfo = async () => {
+    try {
+      const response = await fetch('/api/clinic-info')
+      if (response.ok) {
+        const info = await response.json()
+        setClinicInfo(info)
+      }
+    } catch (error) {
+      console.error('Error fetching clinic info:', error)
     }
   }
 
@@ -85,7 +99,7 @@ export default function DentistsPage() {
   }
 
   // Solo admins pueden gestionar dentistas
-  if (session.user.role !== 'ADMIN') {
+  if (session.user.role !== 'CLINIC_ADMIN') {
     return (
       <div className="min-h-screen bg-gray-50 p-8">
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
@@ -127,6 +141,17 @@ export default function DentistsPage() {
                 ← Volver
               </button>
               <h1 className="text-xl font-semibold text-gray-900">Gestión de Dentistas</h1>
+              {clinicInfo && (
+                <div className="flex items-center space-x-2">
+                  <div className="h-6 w-px bg-gray-300"></div>
+                  <div className="flex items-center space-x-1">
+                    <span className="text-sm font-medium text-blue-600">🏥 {clinicInfo.name}</span>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                      {clinicInfo.plan.toUpperCase()}
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
             <div className="flex items-center space-x-4">
               <button
