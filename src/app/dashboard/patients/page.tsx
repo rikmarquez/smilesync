@@ -21,9 +21,13 @@ export default function PatientsPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const [patients, setPatients] = useState<Patient[]>([])
+  const [filteredPatients, setFilteredPatients] = useState<Patient[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [clinicInfo, setClinicInfo] = useState<{name: string, plan: string} | null>(null)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [sortBy, setSortBy] = useState<'name' | 'createdAt'>('name')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -46,6 +50,7 @@ export default function PatientsPage() {
       }
       const data = await response.json()
       setPatients(data)
+      setFilteredPatients(data)
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Error desconocido')
     } finally {
@@ -65,8 +70,34 @@ export default function PatientsPage() {
     }
   }
 
+  // Función de búsqueda y filtrado
+  useEffect(() => {
+    let filtered = patients.filter(patient => 
+      patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      patient.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      patient.phone.includes(searchTerm)
+    )
+
+    // Ordenar
+    filtered.sort((a, b) => {
+      let compareValue = 0
+      if (sortBy === 'name') {
+        compareValue = a.name.localeCompare(b.name)
+      } else {
+        compareValue = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      }
+      return sortOrder === 'asc' ? compareValue : -compareValue
+    })
+
+    setFilteredPatients(filtered)
+  }, [patients, searchTerm, sortBy, sortOrder])
+
   const handleEdit = (patientId: string) => {
     router.push(`/dashboard/patients/edit/${patientId}`)
+  }
+
+  const handleViewHistory = (patientId: string) => {
+    router.push(`/dashboard/patients/${patientId}/history`)
   }
 
   const handleDelete = async (patientId: string, patientName: string) => {
@@ -163,15 +194,48 @@ export default function PatientsPage() {
       {/* Main Content */}
       <main className="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
-          {/* Stats */}
-          <div className="mb-6">
-            <div className="bg-white shadow rounded-lg p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-lg font-medium text-gray-900">Total de Pacientes</h2>
-                  <p className="text-3xl font-bold text-blue-600">{patients.length}</p>
+          {/* Search and Filter Bar */}
+          <div className="mb-6 bg-white shadow rounded-lg p-4">
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+              <div className="flex-1 max-w-md">
+                <label htmlFor="search" className="sr-only">Buscar pacientes</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <span className="text-gray-400">🔍</span>
+                  </div>
+                  <input
+                    id="search"
+                    type="text"
+                    placeholder="Buscar por nombre, email o teléfono..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 text-gray-900 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                  />
                 </div>
-                <div className="text-4xl">👥</div>
+              </div>
+              
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2">
+                  <label className="text-sm text-gray-700">Ordenar por:</label>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as 'name' | 'createdAt')}
+                    className="text-sm border border-gray-300 rounded px-2 py-1 bg-white text-gray-900 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="name">Nombre</option>
+                    <option value="createdAt">Fecha de registro</option>
+                  </select>
+                  <button
+                    onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                    className="text-sm text-gray-500 hover:text-gray-700"
+                  >
+                    {sortOrder === 'asc' ? '↑' : '↓'}
+                  </button>
+                </div>
+                
+                <div className="text-sm text-gray-600">
+                  {filteredPatients.length} de {patients.length} pacientes
+                </div>
               </div>
             </div>
           </div>
@@ -204,14 +268,14 @@ export default function PatientsPage() {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {patients.length === 0 ? (
+                    {filteredPatients.length === 0 ? (
                       <tr>
                         <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
-                          No hay pacientes registrados
+                          {searchTerm ? 'No se encontraron pacientes que coincidan con la búsqueda' : 'No hay pacientes registrados'}
                         </td>
                       </tr>
                     ) : (
-                      patients.map((patient) => (
+                      filteredPatients.map((patient) => (
                         <tr key={patient.id} className="hover:bg-gray-50">
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm font-medium text-gray-900">
@@ -235,6 +299,12 @@ export default function PatientsPage() {
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <button
+                              onClick={() => handleViewHistory(patient.id)}
+                              className="text-green-600 hover:text-green-900 mr-3"
+                            >
+                              Historial
+                            </button>
                             <button
                               onClick={() => handleEdit(patient.id)}
                               className="text-blue-600 hover:text-blue-900 mr-3"
