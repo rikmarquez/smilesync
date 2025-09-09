@@ -60,14 +60,28 @@ export default function CalendarPage() {
   // Handle new appointment creation
   const handleCreateAppointment = async (appointmentData: any) => {
     try {
-      console.log('Sending appointment data to API:', appointmentData)
+      // Calculate endTime based on startTime and duration
+      const startTime = new Date(appointmentData.startTime)
+      const endTime = new Date(startTime.getTime() + (appointmentData.duration * 60 * 1000))
+      
+      // Prepare data for API (remove duration, add endTime)
+      const apiData = {
+        startTime: appointmentData.startTime,
+        endTime: endTime.toISOString(),
+        patientId: appointmentData.patientId,
+        dentistId: appointmentData.dentistId,
+        serviceId: appointmentData.serviceId || null,
+        notes: appointmentData.notes || null
+      }
+      
+      console.log('Sending appointment data to API:', apiData)
       
       const response = await fetch('/api/appointments', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(appointmentData)
+        body: JSON.stringify(apiData)
       })
 
       const responseData = await response.json()
