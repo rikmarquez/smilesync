@@ -104,8 +104,8 @@ export default function CalendarPage() {
         throw new Error(responseData.error || 'Failed to create appointment')
       }
       
-      // Refresh calendar data to show new appointment
-      window.location.reload() // Simple refresh for now
+      // Refresh calendar data to show new appointment while preserving state
+      await refetch()
       
     } catch (error) {
       console.error('Error creating appointment:', error)
@@ -184,8 +184,8 @@ export default function CalendarPage() {
         throw new Error(responseData.error || 'Failed to delete appointment')
       }
       
-      // Refresh calendar data
-      window.location.reload()
+      // Refresh calendar data while preserving state
+      await refetch()
       
     } catch (error) {
       console.error('Error deleting appointment:', error)
