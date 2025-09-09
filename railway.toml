@@ -1,6 +1,6 @@
 [build]
   builder = "nixpacks"
-  buildCommand = "prisma generate && prisma db push && npm run build"
+  buildCommand = "prisma generate && npm run build"
   watchPatterns = ["src/**", "prisma/**", "package.json"]
 
 [deploy]
