@@ -347,19 +347,14 @@ export default function PatientHistoryPage({ params }: PageProps) {
                                         <span>📋</span>
                                         <span>Creada el {new Date(appointment.createdAt).toLocaleDateString('es-MX')}</span>
                                       </div>
-                                    </div>
-                                    
-                                    {appointment.notes && (
-                                      <div className="mt-3 p-3 bg-white rounded border border-gray-200">
-                                        <div className="flex items-start space-x-2">
-                                          <span className="text-gray-400 text-sm mt-0.5">💬</span>
-                                          <div>
-                                            <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Notas</div>
-                                            <p className="text-sm text-gray-700">{appointment.notes}</p>
-                                          </div>
-                                        </div>
+                                      <div className="flex items-center space-x-1 col-span-2">
+                                        <span>💬</span>
+                                        <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Notas:</span>
+                                        <span className="text-sm text-gray-700">
+                                          {appointment.notes || 'Sin notas'}
+                                        </span>
                                       </div>
-                                    )}
+                                    </div>
                                   </div>
                                 </div>
                               </div>
