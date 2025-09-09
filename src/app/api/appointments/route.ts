@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     const date = searchParams.get('date')
     const status = searchParams.get('status')
 
-    const where: any = {
+    const where: { [key: string]: any } = {
       organizationId: session.user.organizationId
     }
 

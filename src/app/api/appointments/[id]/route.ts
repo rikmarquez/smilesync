@@ -114,7 +114,7 @@ export async function PATCH(
       }
     }
 
-    const updateData: any = {}
+    const updateData: { [key: string]: any } = {}
     if (validatedData.startTime) updateData.startTime = new Date(validatedData.startTime)
     if (validatedData.endTime) updateData.endTime = new Date(validatedData.endTime)
     if (validatedData.patientId) updateData.patientId = validatedData.patientId

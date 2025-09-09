@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Build where clause
-    const whereClause: any = {
+    const whereClause: { [key: string]: any } = {
       organizationId: session.user.organizationId,
       startTime: {
         gte: startDate,
