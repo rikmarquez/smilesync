@@ -1,6 +1,74 @@
 # SmileSync - Estado del Proyecto
 
-## Sesión Actual: 2025-09-08 - SISTEMA MULTI-CLÍNICA CON SUPER ADMIN (COMPLETADA)
+## Sesión Actual: 2025-09-08 - ELIMINACIÓN DRAG & DROP Y DEBUG MODAL EDICIÓN
+
+### 🎯 **OBJETIVO PARCIALMENTE COMPLETADO**: Eliminación de drag & drop + Debug modal de edición
+
+### Avances Críticos de la Sesión - Mejoras al Sistema de Calendario
+✅ **COMPLETADO**: Eliminación completa del sistema drag & drop del calendario
+🔧 **EN PROGRESO**: Debug del modal de edición de citas (error de validación)
+
+#### 🏆 Funcionalidades Completadas
+- ✅ **Eliminación completa del sistema drag & drop**
+  - ❌ Removido: `DndContext`, `DragEndEvent`, `DragStartEvent`, `DragOverlay` de `@dnd-kit/core`
+  - ❌ Eliminado: Estado de drag (`activeAppointment`, `isDragging`)
+  - ❌ Removido: Handlers de drag (`handleDragStart`, `handleDragEnd`)
+  - ❌ Eliminado: Función `moveAppointment` del hook `useCalendarData`
+  - ✅ Actualizado: `AppointmentCard` - cursor de `grab` a `pointer`
+  - ✅ Mantenido: Funcionalidad de double-click para editar citas
+
+- ✅ **Corrección de error de sintaxis**
+  - ✅ Resuelto: Error "Unterminated regexp literal" en `page.tsx`
+  - ✅ Reescrito: Archivo completo con sintaxis limpia
+  - ✅ Verificado: Página compilando correctamente (status 200)
+
+#### 🔧 Debugging En Progreso - Modal de Edición
+- ✅ **Problema identificado**: Error "Invalid data" (HTTP 400) al actualizar fecha
+- ✅ **Campo problemático removido**: `patientId` eliminado del payload de actualización
+- ✅ **Logging mejorado**: 
+  - Cliente: Logs detallados con JSON.stringify para ver respuesta completa
+  - Servidor: Logs del request body y datos validados
+- ✅ **Next.js 15 compatibility**: Corregido manejo de `params` con `await params`
+- 🔧 **PENDIENTE**: Identificar campo específico que falla validación Zod
+
+#### 📋 Estado Actual de la Cita de Prueba
+```
+ID: cmfbr3w3c0007u1e0bqo3glzt
+Fecha actual: 31/12/2022 9:00 AM
+Paciente: RICARDO MARQUEZ SOLANO
+Dentista: Sol Cortez
+Servicio: Limpieza Dental
+Estado: SCHEDULED
+```
+
+#### 🔄 Próximos Pasos (Para siguiente sesión)
+1. **Debug final del modal de edición**
+   - Ejecutar prueba con fecha 09/09/2025
+   - Analizar logs detallados del servidor y cliente
+   - Identificar campo específico causando error de validación Zod
+   - Posibles causas: formato ISO fecha, zona horaria, conflicto de horarios
+
+#### 📝 Archivos Modificados En Esta Sesión
+- `src/app/dashboard/calendar/page.tsx` - Eliminado drag & drop, logging detallado
+- `src/app/dashboard/calendar/components/AppointmentCard.tsx` - Removido useDraggable
+- `src/app/dashboard/calendar/hooks/useCalendarData.ts` - Eliminado moveAppointment
+- `src/app/dashboard/calendar/components/EditAppointmentModal.tsx` - Removido patientId
+- `src/app/api/appointments/[id]/route.ts` - Corregido params Next.js 15, logging
+
+#### 🎯 Razón de la Eliminación de Drag & Drop
+**Solicitado por usuario**: "Al dar doble click desaparece, parece que la quiere arrastrar... sabes que, quita la funcionalidad de arrastrar... no me es funcional, normalmente reagendamos para semanas o días posteriores... es más fácil cambiar manualmente la fecha."
+
+#### 🐛 Bug Pendiente de Resolución
+**Modal de edición - Error de validación**
+- **Error**: "Invalid data" (HTTP 400) 
+- **Datos enviados**: `{dentistId, serviceId, startTime, endTime, notes, status}`
+- **Formato fechas**: ISO correcto `2025-09-09T15:00:00.000Z`
+- **Estado**: Logs implementados, ready para debug definitivo
+- **Próximo paso**: Analizar logs detallados en próxima sesión
+
+---
+
+## Sesión Anterior: 2025-09-08 - SISTEMA MULTI-CLÍNICA CON SUPER ADMIN (COMPLETADA)
 
 ### 🎯 **OBJETIVO ALCANZADO**: Sistema multi-clínica completo con autenticación por email y gestión completa de clínicas
 

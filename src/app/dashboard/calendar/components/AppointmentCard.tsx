@@ -1,14 +1,12 @@
 import { CalendarAppointment } from '../hooks/useCalendarData'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { useDraggable } from '@dnd-kit/core'
 import clsx from 'clsx'
 
 interface AppointmentCardProps {
   appointment: CalendarAppointment
   onClick?: (appointment: CalendarAppointment) => void
   onDoubleClick?: (appointment: CalendarAppointment) => void
-  isDragging?: boolean
   className?: string
 }
 
@@ -32,36 +30,16 @@ export default function AppointmentCard({
   appointment,
   onClick,
   onDoubleClick,
-  isDragging = false,
   className
 }: AppointmentCardProps) {
   const startTime = format(new Date(appointment.start), 'HH:mm', { locale: es })
   const endTime = format(new Date(appointment.end), 'HH:mm', { locale: es })
-  
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    isDragging: isDndDragging
-  } = useDraggable({
-    id: appointment.id
-  })
-
-  const style = transform ? {
-    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-  } : undefined
 
   return (
     <div
-      ref={setNodeRef}
-      style={style}
-      {...listeners}
-      {...attributes}
       className={clsx(
-        'relative rounded-md border-2 p-1 shadow-sm cursor-grab transition-all duration-200 hover:shadow-md text-xs w-full max-w-full min-w-0 box-border',
+        'relative rounded-md border-2 p-1 shadow-sm cursor-pointer transition-all duration-200 hover:shadow-md text-xs w-full max-w-full min-w-0 box-border',
         statusColors[appointment.status],
-        (isDragging || isDndDragging) && 'rotate-3 scale-105 shadow-lg z-50 cursor-grabbing',
         className
       )}
       onClick={(e) => {

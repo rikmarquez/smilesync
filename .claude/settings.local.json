@@ -21,7 +21,10 @@
       "Bash(del migrate-to-multiClinic.js)",
       "Bash(del reset-db.sql)",
       "Bash(find:*)",
-      "Bash(set PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION=yes)"
+      "Bash(set PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION=yes)",
+      "Bash(taskkill:*)",
+      "Bash(npx kill-port:*)",
+      "Bash(/dev/null)"
     ],
     "deny": [],
     "ask": []

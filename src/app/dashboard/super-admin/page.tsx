@@ -258,12 +258,18 @@ export default function SuperAdminDashboard() {
           <div className="bg-white shadow rounded-lg mb-8">
             <div className="px-4 py-5 sm:p-6">
               <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">Acciones Rápidas</h3>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
                 <button 
                   onClick={() => router.push('/dashboard/super-admin/new-clinic')}
                   className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
                 >
                   ➕ Nueva Clínica
+                </button>
+                <button 
+                  onClick={() => router.push('/dashboard/super-admin/users')}
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
+                >
+                  👥 Gestión de Usuarios
                 </button>
                 <button 
                   onClick={() => fetchOrganizations()}

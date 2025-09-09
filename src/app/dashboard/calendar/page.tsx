@@ -3,12 +3,12 @@
 import { useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { DndContext, DragEndEvent, DragStartEvent, DragOverlay, closestCenter } from '@dnd-kit/core'
 import { useCalendarData, CalendarAppointment } from './hooks/useCalendarData'
 import CalendarFilters from './components/CalendarFilters'
 import CalendarGrid from './components/CalendarGrid'
 import AppointmentCard from './components/AppointmentCard'
 import NewAppointmentModal from './components/NewAppointmentModal'
+import EditAppointmentModal from './components/EditAppointmentModal'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import clsx from 'clsx'
@@ -32,14 +32,10 @@ export default function CalendarPage() {
     navigateNext,
     navigateToday,
     navigateToDate,
-    moveAppointment,
     getAppointmentsForSlot,
     isSlotAvailable
   } = useCalendarData()
 
-  // Drag and drop state
-  const [activeAppointment, setActiveAppointment] = useState<CalendarAppointment | null>(null)
-  const [isDragging, setIsDragging] = useState(false)
 
   // Modal state for creating appointments
   const [showNewAppointmentModal, setShowNewAppointmentModal] = useState(false)
@@ -49,49 +45,10 @@ export default function CalendarPage() {
     date?: Date
   } | null>(null)
 
-  // Handle drag start
-  const handleDragStart = (event: DragStartEvent) => {
-    const appointmentId = event.active.id as string
-    const appointment = data?.appointments.find(apt => apt.id === appointmentId)
-    
-    if (appointment) {
-      setActiveAppointment(appointment)
-      setIsDragging(true)
-    }
-  }
+  // Modal state for editing appointments
+  const [showEditAppointmentModal, setShowEditAppointmentModal] = useState(false)
+  const [selectedAppointment, setSelectedAppointment] = useState<CalendarAppointment | null>(null)
 
-  // Handle drag end (reagendar functionality)
-  const handleDragEnd = async (event: DragEndEvent) => {
-    const { active, over } = event
-    
-    setActiveAppointment(null)
-    setIsDragging(false)
-
-    if (!over || !active || !data) return
-
-    const appointmentId = active.id as string
-    const dropTarget = over.id as string
-
-    try {
-      // Parse drop target: format "slot-time-dentistId-date"
-      const [, time, dentistId, dateStr] = dropTarget.split('-')
-      
-      if (!time) return
-
-      const targetDate = dateStr ? new Date(dateStr) : currentDate
-      
-      // Create new start time
-      const [hours, minutes] = time.split(':').map(Number)
-      const newStartTime = new Date(targetDate)
-      newStartTime.setHours(hours, minutes, 0, 0)
-
-      await moveAppointment(appointmentId, newStartTime.toISOString(), dentistId)
-      
-    } catch (error) {
-      console.error('Error moving appointment:', error)
-      // You could show a toast notification here
-    }
-  }
 
   // Handle slot click (create new appointment)
   const handleSlotClick = (time: string, dentistId?: string, date?: Date) => {
@@ -104,7 +61,7 @@ export default function CalendarPage() {
     try {
       console.log('Sending appointment data to API:', appointmentData)
       
-      const response = await fetch('/api/appointments/create', {
+      const response = await fetch('/api/appointments', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -131,6 +88,64 @@ export default function CalendarPage() {
     }
   }
 
+  // Handle appointment update
+  const handleUpdateAppointment = async (appointmentData: any) => {
+    try {
+      console.log('Updating appointment with data:', appointmentData)
+      
+      const response = await fetch(`/api/appointments/${appointmentData.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(appointmentData)
+      })
+
+      const responseData = await response.json()
+      console.log('API response:', { status: response.status, data: responseData })
+
+      if (!response.ok) {
+        console.error('Update failed - Full response:', JSON.stringify(responseData, null, 2))
+        if (responseData.details) {
+          console.error('Validation details:', JSON.stringify(responseData.details, null, 2))
+          // Show detailed validation errors
+          responseData.details.forEach((detail: any, index: number) => {
+            console.error(`Validation error ${index + 1}:`, JSON.stringify(detail, null, 2))
+          })
+        }
+        throw new Error(responseData.error || 'Failed to update appointment')
+      }
+      
+      // Refresh calendar data
+      window.location.reload()
+      
+    } catch (error) {
+      console.error('Error updating appointment:', error)
+      throw error
+    }
+  }
+
+  // Handle appointment deletion
+  const handleDeleteAppointment = async (appointmentId: string) => {
+    try {
+      const response = await fetch(`/api/appointments/${appointmentId}`, {
+        method: 'DELETE'
+      })
+
+      if (!response.ok) {
+        const responseData = await response.json()
+        throw new Error(responseData.error || 'Failed to delete appointment')
+      }
+      
+      // Refresh calendar data
+      window.location.reload()
+      
+    } catch (error) {
+      console.error('Error deleting appointment:', error)
+      throw error
+    }
+  }
+
   // Handle appointment click (view details)
   const handleAppointmentClick = (appointment: CalendarAppointment) => {
     // Navigate to appointment details or show modal
@@ -139,8 +154,8 @@ export default function CalendarPage() {
 
   // Handle appointment double click (edit)
   const handleAppointmentDoubleClick = (appointment: CalendarAppointment) => {
-    // Navigate to edit appointment
-    router.push(`/dashboard/appointments/${appointment.id}/edit`)
+    setSelectedAppointment(appointment)
+    setShowEditAppointmentModal(true)
   }
 
   if (!session) {
@@ -188,12 +203,7 @@ export default function CalendarPage() {
   })
 
   return (
-    <DndContext
-      collisionDetection={closestCenter}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-    >
-      <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50">
         {/* Header */}
         <div className="bg-white shadow">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -341,16 +351,6 @@ export default function CalendarPage() {
           </div>
         </main>
 
-        {/* Drag overlay */}
-        <DragOverlay>
-          {activeAppointment && (
-            <AppointmentCard
-              appointment={activeAppointment}
-              isDragging={true}
-              className="transform rotate-3 scale-105"
-            />
-          )}
-        </DragOverlay>
 
         {/* New Appointment Modal */}
         <NewAppointmentModal
@@ -360,7 +360,19 @@ export default function CalendarPage() {
           prefilledData={selectedSlot}
           dentists={data.dentists}
         />
-      </div>
-    </DndContext>
+
+        {/* Edit Appointment Modal */}
+        <EditAppointmentModal
+          isOpen={showEditAppointmentModal}
+          onClose={() => {
+            setShowEditAppointmentModal(false)
+            setSelectedAppointment(null)
+          }}
+          onUpdate={handleUpdateAppointment}
+          onDelete={handleDeleteAppointment}
+          appointment={selectedAppointment}
+          dentists={data.dentists}
+        />
+    </div>
   )
 }

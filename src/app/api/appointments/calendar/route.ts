@@ -88,7 +88,9 @@ export async function GET(request: NextRequest) {
     const dentists = await db.user.findMany({
       where: {
         organizationId: session.user.organizationId,
-        role: 'DENTIST'
+        role: {
+          in: ['DENTIST', 'CLINIC_ADMIN', 'RECEPTIONIST']
+        }
       },
       select: {
         id: true,

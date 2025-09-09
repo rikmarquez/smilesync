@@ -144,49 +144,6 @@ export function useCalendarData() {
     setCurrentDate(date)
   }, [])
 
-  // Move appointment function
-  const moveAppointment = useCallback(async (
-    appointmentId: string, 
-    newStartTime: string, 
-    newDentistId?: string
-  ) => {
-    try {
-      const response = await fetch(`/api/appointments/${appointmentId}/move`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          newStartTime,
-          ...(newDentistId && { newDentistId })
-        })
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to move appointment')
-      }
-
-      const updatedAppointment = await response.json()
-      
-      // Update local state optimistically
-      setData(prevData => {
-        if (!prevData) return prevData
-        
-        return {
-          ...prevData,
-          appointments: prevData.appointments.map(apt => 
-            apt.id === appointmentId ? updatedAppointment : apt
-          )
-        }
-      })
-
-      return updatedAppointment
-    } catch (err) {
-      console.error('Move appointment error:', err)
-      throw err
-    }
-  }, [])
 
   // Format current date for display
   const formattedCurrentDate = format(currentDate, 'MMMM yyyy', { locale: es })
@@ -297,7 +254,6 @@ export function useCalendarData() {
     navigateToday,
     navigateToDate,
     refetch: fetchCalendarData,
-    moveAppointment,
     
     // Utilities
     getAppointmentsForSlot,

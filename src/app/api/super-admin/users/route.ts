@@ -9,67 +9,94 @@ const createUserSchema = z.object({
   name: z.string().min(1, 'Nombre es requerido'),
   email: z.string().email('Email válido requerido'),
   password: z.string().min(6, 'Contraseña debe tener al menos 6 caracteres'),
-  role: z.enum(['DENTIST', 'RECEPTIONIST']),
-  phone: z.string().optional(),
+  role: z.enum(['CLINIC_ADMIN', 'DENTIST', 'RECEPTIONIST']),
+  organizationId: z.string().uuid('ID de organización inválido'),
 })
 
-export async function GET(request: NextRequest) {
+// GET /api/super-admin/users?organizationId=xxx - Obtener usuarios de una clínica
+export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    if (!session || session.user.role !== 'SUPER_ADMIN') {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
-    const { searchParams } = new URL(request.url)
-    const roleParam = searchParams.get('role')
-    
-    const where: any = {
-      organizationId: session.user.organizationId
+    const { searchParams } = new URL(req.url)
+    const organizationId = searchParams.get('organizationId')
+
+    if (!organizationId) {
+      return NextResponse.json({ error: 'organizationId es requerido' }, { status: 400 })
     }
 
-    if (roleParam) {
-      const roles = roleParam.split(',')
-      where.role = { in: roles }
+    // Verificar que la organización existe
+    const organization = await db.organization.findUnique({
+      where: { id: organizationId },
+    })
+
+    if (!organization) {
+      return NextResponse.json({ error: 'Clínica no encontrada' }, { status: 404 })
     }
 
+    // Obtener todos los usuarios de la organización
     const users = await db.user.findMany({
-      where,
+      where: {
+        organizationId: organizationId,
+      },
       select: {
         id: true,
         name: true,
         email: true,
-        role: true
+        role: true,
+        createdAt: true,
+        updatedAt: true,
+        organization: {
+          select: {
+            id: true,
+            name: true,
+          }
+        }
       },
       orderBy: {
-        name: 'asc'
-      }
+        createdAt: 'desc',
+      },
     })
 
-    return NextResponse.json(users)
+    return NextResponse.json({
+      organization: {
+        id: organization.id,
+        name: organization.name,
+      },
+      users,
+      total: users.length,
+    })
+
   } catch (error) {
     console.error('Error fetching users:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })
   }
 }
 
-// POST /api/users - Crear nuevo usuario (para CLINIC_ADMIN en su propia clínica)
+// POST /api/super-admin/users - Crear nuevo usuario
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
 
-    if (!session || session.user.role !== 'CLINIC_ADMIN') {
-      return NextResponse.json({ error: 'No autorizado. Solo administradores de clínica pueden crear usuarios.' }, { status: 401 })
-    }
-
-    if (!session.user.organizationId) {
-      return NextResponse.json({ error: 'Usuario no pertenece a ninguna organización' }, { status: 400 })
+    if (!session || session.user.role !== 'SUPER_ADMIN') {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
     const body = await req.json()
     const validatedData = createUserSchema.parse(body)
+
+    // Verificar que la organización existe
+    const organization = await db.organization.findUnique({
+      where: { id: validatedData.organizationId },
+    })
+
+    if (!organization) {
+      return NextResponse.json({ error: 'Clínica no encontrada' }, { status: 404 })
+    }
 
     // Verificar que el email no esté en uso
     const existingUser = await db.user.findUnique({
@@ -80,30 +107,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'El email ya está en uso' }, { status: 400 })
     }
 
-    // Verificar límites de usuarios de la organización
-    const organization = await db.organization.findUnique({
-      where: { id: session.user.organizationId },
-      include: {
-        _count: {
-          select: { users: true }
-        }
-      }
-    })
-
-    if (!organization) {
-      return NextResponse.json({ error: 'Organización no encontrada' }, { status: 404 })
-    }
-
-    if (organization._count.users >= organization.maxUsers) {
-      return NextResponse.json({ 
-        error: `Límite de usuarios alcanzado (${organization.maxUsers}). Contacte al Super Admin para aumentar el límite.` 
-      }, { status: 400 })
-    }
-
     // Encriptar contraseña
     const hashedPassword = await bcrypt.hash(validatedData.password, 12)
 
-    // Crear usuario en la misma organización que el admin
+    // Crear usuario
     const newUser = await db.user.create({
       data: {
         name: validatedData.name,
@@ -111,9 +118,7 @@ export async function POST(req: NextRequest) {
         username: validatedData.email,
         password: hashedPassword,
         role: validatedData.role,
-        phone: validatedData.phone,
-        organizationId: session.user.organizationId,
-        isActive: true,
+        organizationId: validatedData.organizationId,
       },
       include: {
         organization: {
