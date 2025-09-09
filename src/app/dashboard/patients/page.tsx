@@ -73,9 +73,9 @@ export default function PatientsPage() {
   // Función de búsqueda y filtrado
   useEffect(() => {
     let filtered = patients.filter(patient => 
-      patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      patient.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      patient.phone.includes(searchTerm)
+      patient.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      patient.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      patient.phone?.includes(searchTerm)
     )
 
     // Ordenar
