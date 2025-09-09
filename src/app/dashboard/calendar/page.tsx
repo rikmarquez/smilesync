@@ -32,6 +32,7 @@ export default function CalendarPage() {
     navigateNext,
     navigateToday,
     navigateToDate,
+    refetch,
     getAppointmentsForSlot,
     isSlotAvailable
   } = useCalendarData()
@@ -106,6 +107,24 @@ export default function CalendarPage() {
 
       if (!response.ok) {
         console.error('Update failed - Full response:', JSON.stringify(responseData, null, 2))
+        
+        // Handle specific error cases
+        if (response.status === 409 && responseData.error === 'Time slot already booked') {
+          // Format the appointment date and time for the error message
+          const appointmentDate = new Date(appointmentData.startTime).toLocaleDateString('es-MX', {
+            weekday: 'long',
+            year: 'numeric', 
+            month: 'long',
+            day: 'numeric'
+          })
+          const appointmentTime = new Date(appointmentData.startTime).toLocaleTimeString('es-MX', {
+            hour: '2-digit',
+            minute: '2-digit'
+          })
+          
+          throw new Error(`⚠️ El horario está ocupado\n\nLa fecha ${appointmentDate} a las ${appointmentTime} ya tiene una cita programada para este dentista.\n\nPor favor, selecciona un horario diferente.`)
+        }
+        
         if (responseData.details) {
           console.error('Validation details:', JSON.stringify(responseData.details, null, 2))
           // Show detailed validation errors
@@ -116,8 +135,12 @@ export default function CalendarPage() {
         throw new Error(responseData.error || 'Failed to update appointment')
       }
       
-      // Refresh calendar data
-      window.location.reload()
+      // Navigate to the new appointment date and refresh calendar data
+      const newDate = new Date(appointmentData.startTime)
+      navigateToDate(newDate)
+      
+      // Refresh calendar data without reloading the page
+      await refetch()
       
     } catch (error) {
       console.error('Error updating appointment:', error)

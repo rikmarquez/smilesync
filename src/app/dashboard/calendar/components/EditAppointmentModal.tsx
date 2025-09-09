@@ -107,7 +107,8 @@ export default function EditAppointmentModal({
       onClose()
     } catch (error) {
       console.error('Error updating appointment:', error)
-      alert('Error al actualizar la cita')
+      const errorMessage = error instanceof Error ? error.message : 'Error al actualizar la cita'
+      alert(errorMessage)
     } finally {
       setLoading(false)
     }

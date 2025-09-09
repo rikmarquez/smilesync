@@ -10,8 +10,8 @@ const updateAppointmentSchema = z.object({
   patientId: z.string().optional(),
   dentistId: z.string().optional(),
   status: z.enum(['SCHEDULED', 'CONFIRMED', 'COMPLETED', 'CANCELLED', 'NO_SHOW']).optional(),
-  notes: z.string().optional(),
-  serviceId: z.string().optional()
+  notes: z.string().nullable().optional(),
+  serviceId: z.string().nullable().optional()
 })
 
 export async function GET(

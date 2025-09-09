@@ -1,6 +1,6 @@
 import { Dentist } from '../hooks/useCalendarData'
 import clsx from 'clsx'
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef } from 'react'
 import { format } from 'date-fns'
 
 interface CalendarFiltersProps {
@@ -34,7 +34,17 @@ export default function CalendarFilters({
   onToday,
   onDateChange
 }: CalendarFiltersProps) {
-  const [dateInputValue, setDateInputValue] = useState('')
+  // Initialize with persisted date or today's date
+  const getInitialDate = () => {
+    try {
+      const saved = localStorage.getItem('calendar-goto-date')
+      return saved || format(new Date(), 'yyyy-MM-dd')
+    } catch {
+      return format(new Date(), 'yyyy-MM-dd')
+    }
+  }
+  
+  const [dateInputValue, setDateInputValue] = useState(getInitialDate)
   const dateInputRef = useRef<HTMLInputElement>(null)
 
   const handleViewNavigation = (targetView: 'day' | 'week' | 'month', direction: 'prev' | 'next') => {
@@ -46,36 +56,50 @@ export default function CalendarFilters({
     } else {
       onNext()
     }
-    // Clear date input when navigating
-    setDateInputValue('')
+    // Don't change the input - keep the user's date
   }
 
   const handleTodayClick = () => {
     onToday()
-    // Clear date input when clicking "Today"
-    setDateInputValue('')
+    // Don't change the input - keep the user's date
   }
 
   const handlePreviousClick = () => {
     onPrevious()
-    // Clear date input when navigating
-    setDateInputValue('')
+    // Don't change the input - keep the user's date
   }
 
   const handleNextClick = () => {
     onNext()
-    // Clear date input when navigating
-    setDateInputValue('')
+    // Don't change the input - keep the user's date
   }
 
   const handleDateInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
     setDateInputValue(value)
-    
-    if (value && onDateChange) {
-      const [year, month, day] = value.split('-').map(Number)
-      const localDate = new Date(year, month - 1, day)
-      onDateChange(localDate)
+    // Persist the date in localStorage
+    try {
+      localStorage.setItem('calendar-goto-date', value)
+    } catch {
+      // Ignore localStorage errors
+    }
+    // Don't navigate immediately, wait for button click or Enter key
+  }
+
+  const handleGoToDate = () => {
+    if (dateInputValue && onDateChange) {
+      const [year, month, day] = dateInputValue.split('-').map(Number)
+      if (year && month && day) {
+        const localDate = new Date(year, month - 1, day)
+        onDateChange(localDate)
+        // DON'T update the input - keep the user's selected date visible
+      }
+    }
+  }
+
+  const handleDateKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleGoToDate()
     }
   }
 
@@ -102,14 +126,24 @@ export default function CalendarFilters({
               <label className="text-sm font-medium text-gray-700">
                 Ir a:
               </label>
-              <input
-                ref={dateInputRef}
-                type="date"
-                value={dateInputValue}
-                onChange={handleDateInputChange}
-                className="px-3 py-1 text-sm font-medium border border-gray-400 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
-                title="Seleccionar fecha"
-              />
+              <div className="flex items-center space-x-1">
+                <input
+                  ref={dateInputRef}
+                  type="date"
+                  value={dateInputValue}
+                  onChange={handleDateInputChange}
+                  onKeyPress={handleDateKeyPress}
+                  className="px-3 py-1 text-sm font-medium border border-gray-400 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
+                  title="Seleccionar fecha y presiona Enter o click en Ir"
+                />
+                <button
+                  onClick={handleGoToDate}
+                  className="px-3 py-1 text-sm font-medium bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+                  title="Ir a la fecha seleccionada"
+                >
+                  Ir
+                </button>
+              </div>
             </div>
           )}
         </div>
