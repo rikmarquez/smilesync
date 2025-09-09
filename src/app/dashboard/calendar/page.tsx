@@ -60,13 +60,22 @@ export default function CalendarPage() {
   // Handle new appointment creation
   const handleCreateAppointment = async (appointmentData: any) => {
     try {
+      console.log('DEBUG - Appointment data received:', appointmentData)
+      console.log('DEBUG - Duration value:', appointmentData.duration, 'type:', typeof appointmentData.duration)
+      
       // Calculate endTime based on startTime and duration
       const startTime = new Date(appointmentData.startTime)
-      const endTime = new Date(startTime.getTime() + (appointmentData.duration * 60 * 1000))
+      console.log('DEBUG - Start time parsed:', startTime.toISOString())
+      
+      const durationMinutes = parseInt(appointmentData.duration) || 30
+      console.log('DEBUG - Duration in minutes:', durationMinutes)
+      
+      const endTime = new Date(startTime.getTime() + (durationMinutes * 60 * 1000))
+      console.log('DEBUG - End time calculated:', endTime.toISOString())
       
       // Prepare data for API (remove duration, add endTime)
       const apiData = {
-        startTime: appointmentData.startTime,
+        startTime: startTime.toISOString(),
         endTime: endTime.toISOString(),
         patientId: appointmentData.patientId,
         dentistId: appointmentData.dentistId,
