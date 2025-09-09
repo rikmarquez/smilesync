@@ -23,6 +23,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const date = searchParams.get('date')
     const status = searchParams.get('status')
+    const patientId = searchParams.get('patientId')
 
     const where: { [key: string]: any } = {
       organizationId: session.user.organizationId
@@ -44,6 +45,16 @@ export async function GET(request: NextRequest) {
       where.status = status
     }
 
+    if (patientId) {
+      where.patientId = patientId
+    }
+
+    // DEBUG - Log query for patient-specific requests
+    if (patientId) {
+      console.log('DEBUG - Fetching appointments for patient:', patientId)
+      console.log('DEBUG - Query where clause:', JSON.stringify(where, null, 2))
+    }
+
     const appointments = await db.appointment.findMany({
       where,
       include: {
@@ -57,6 +68,12 @@ export async function GET(request: NextRequest) {
         startTime: 'asc'
       }
     })
+
+    // DEBUG - Log results for patient-specific requests  
+    if (patientId) {
+      console.log('DEBUG - Found', appointments.length, 'appointments for patient', patientId)
+      console.log('DEBUG - Appointment IDs:', appointments.map(a => ({ id: a.id, patient: a.patient.name, date: a.startTime })))
+    }
 
     return NextResponse.json(appointments)
   } catch (error) {
