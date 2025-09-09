@@ -1,0 +1,14 @@
+[build]
+  builder = "nixpacks"
+  buildCommand = "prisma generate && prisma db push && npm run build"
+  watchPatterns = ["src/**", "prisma/**", "package.json"]
+
+[deploy]
+  startCommand = "npm start"
+  healthcheckPath = "/api/health"
+  healthcheckTimeout = 300
+  restartPolicyType = "on_failure"
+  restartPolicyMaxRetries = 10
+
+[environments.production]
+  variables = { NODE_ENV = "production" }
