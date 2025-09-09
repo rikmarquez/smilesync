@@ -76,11 +76,12 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    console.log('SERVER DEBUG - Received appointment data:', JSON.stringify(body, null, 2))
-    console.log('SERVER DEBUG - Session user:', { id: session.user.id, organizationId: session.user.organizationId })
+    // DEBUG - Uncomment for debugging appointment creation issues
+    // console.log('SERVER DEBUG - Received appointment data:', JSON.stringify(body, null, 2))
+    // console.log('SERVER DEBUG - Session user:', { id: session.user.id, organizationId: session.user.organizationId })
     
     const validatedData = createAppointmentSchema.parse(body)
-    console.log('SERVER DEBUG - Validated data:', JSON.stringify(validatedData, null, 2))
+    // console.log('SERVER DEBUG - Validated data:', JSON.stringify(validatedData, null, 2))
 
     // Check for conflicting appointments
     const conflictingAppointment = await db.appointment.findFirst({
